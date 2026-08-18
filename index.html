@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e17;--surface:#111827;--raised:#1a2235;--border:#1e293b;--bordersub:#162032;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--accent:#22d3ee;--accentdim:rgba(34,211,238,.12);--accentglow:rgba(34,211,238,.06);--success:#34d399;--successdim:rgba(52,211,153,.12);--warning:#fbbf24;--warningdim:rgba(251,191,36,.12);--danger:#f87171;--dangerdim:rgba(248,113,113,.12);--purple:#a78bfa;--purpledim:rgba(167,139,250,.12);--sans:DM Sans,system-ui,sans-serif;--mono:JetBrains Mono,monospace;--rad:8px;--radlg:12px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.sidebar{display:none}}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:24px}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:0 4px}
+.sidebar-brand .icon{width:32px;height:32px;background:var(--accentdim);border:1px solid rgba(34,211,238,.2);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sidebar-brand .name{font-weight:700;font-size:1rem;letter-spacing:-.02em}
+.sidebar-brand .name span{color:var(--accent)}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px}
+.sidebar-nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;color:var(--muted);text-decoration:none;font-size:.88rem;font-weight:500;transition:all .15s;cursor:pointer}
+.sidebar-nav a:hover{background:var(--raised);color:var(--text)}
+.sidebar-nav a.active{background:var(--accentdim);color:var(--accent)}
+.sidebar-nav a .dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+.sidebar-nav a.active .dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.sidebar-footer{margin-top:auto;padding:12px;background:var(--raised);border-radius:var(--rad);font-size:.78rem;color:var(--dim);line-height:1.6}
+.sidebar-footer .live-dot{display:inline-block;width:6px;height:6px;background:var(--success);border-radius:50%;margin-right:4px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.main{padding:28px 32px;overflow-x:hidden}
+@media(max-width:600px){.main{padding:20px 16px}}
+.main-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px}
+.main-header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.03em;line-height:1.2}
+.main-header .meta{font-size:.78rem;color:var(--dim);font-family:var(--mono)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:28px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:18px 20px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.accent::after{background:var(--accent)}.kpi.success::after{background:var(--success)}.kpi.warning::after{background:var(--warning)}.kpi.purple::after{background:var(--purple)}
+.kpi .label{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:6px}
+.kpi .value{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1;letter-spacing:-.04em}
+.kpi .value.accent{color:var(--accent)}.kpi .value.success{color:var(--success)}.kpi .value.warning{color:var(--warning)}.kpi .value.purple{color:var(--purple)}
+.kpi .sub{font-size:.72rem;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+.section{margin-bottom:28px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-head h2{font-size:.88rem;font-weight:600;color:var(--muted)}
+.section-head .count{font-family:var(--mono);font-size:.72rem;color:var(--dim);background:var(--surface);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+.bar-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:16px}
+.bar-item{display:grid;grid-template-columns:100px 1fr 48px;align-items:center;gap:12px;padding:7px 0}
+.bar-item+.bar-item{border-top:1px solid var(--bordersub)}
+.bar-item .name{font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{height:20px;background:var(--raised);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.22,1,.36,1);min-width:2px}
+.bar-fill.cyan{background:linear-gradient(90deg,rgba(34,211,238,.3),rgba(34,211,238,.15))}
+.bar-fill.purple{background:linear-gradient(90deg,rgba(167,139,250,.3),rgba(167,139,250,.15))}
+.bar-fill.green{background:linear-gradient(90deg,rgba(52,211,153,.3),rgba(52,211,153,.15))}
+.bar-fill.amber{background:linear-gradient(90deg,rgba(251,191,36,.3),rgba(251,191,36,.15))}
+.bar-item .count{font-family:var(--mono);font-size:.78rem;font-weight:600;color:var(--muted);text-align:right}
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.score-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:10px 6px;text-align:center;transition:border-color .15s}
+.score-cell:hover{border-color:var(--accent)}
+.score-cell .num{font-family:var(--mono);font-size:1.1rem;font-weight:700;line-height:1}
+.score-cell .cnt{font-family:var(--mono);font-size:.68rem;color:var(--dim);margin-top:4px}
+.score-cell.hot .num{color:var(--danger)}.score-cell.high .num{color:var(--success)}.score-cell.mid .num{color:var(--accent)}.score-cell.low .num{color:var(--warning)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{background:var(--raised);padding:10px 14px;text-align:left;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--bordersub);vertical-align:middle}
+tbody tr{transition:background .1s}tbody tr:hover{background:var(--accentglow)}tbody tr:last-child td{border-bottom:none}
+td.mono{font-family:var(--mono);font-size:.78rem}td.caller{font-weight:600;color:var(--purple)}
+td.channel{font-size:.72rem;color:var(--dim);font-family:var(--mono)}
+td.address{color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-family:var(--mono);font-size:.72rem;font-weight:600}
+.badge.hot{background:var(--dangerdim);color:var(--danger)}.badge.high{background:var(--successdim);color:var(--success)}
+.badge.mid{background:var(--accentdim);color:var(--accent)}.badge.low{background:var(--warningdim);color:var(--warning)}
+.empty-state{text-align:center;padding:80px 20px;color:var(--dim)}
+.empty-state p{font-size:.92rem;max-width:360px;margin:0 auto;line-height:1.7}
+.loading-shimmer{background:linear-gradient(90deg,var(--surface) 25%,var(--raised) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--rad);height:48px;margin-bottom:12px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.loading-shimmer,.sidebar-footer .live-dot{animation:none}}
+.page-footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--dim);font-family:var(--mono)}
+.caller-select{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.caller-select button{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;font-family:var(--mono);font-size:.78rem;cursor:pointer;transition:all .15s}
+.caller-select button:hover{background:var(--raised);color:var(--text)}
+.caller-select button.active{background:var(--accentdim);border-color:var(--accent);color:var(--accent)}
+.quality-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:8px}
+.quality-bar .seg{height:100%}
+.quality-bar .seg.hot{background:var(--danger)}.quality-bar .seg.high{background:var(--success)}
+.quality-bar .seg.mid{background:var(--accent)}.quality-bar .seg.low{background:var(--warning)}
+.view{display:none}.view.active{display:block}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+<div class="sidebar-brand"><div class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L14 5V11L8 15L2 11V5L8 1Z" stroke="currentColor" stroke-width="1.5" fill="none" style="color:var(--accent)"/><circle cx="8" cy="8" r="2" fill="var(--accent)"/></svg></div><div class="name">Lead<span>Monitor</span></div></div>
+<nav class="sidebar-nav">
+<a onclick="showView('dashboard')" id="nav-dashboard" class="active"><span class="dot"></span> Dashboard</a>
+<a onclick="showView('weekly')" id="nav-weekly"><span class="dot"></span> Weekly Report</a>
+<a onclick="showView('caller')" id="nav-caller"><span class="dot"></span> Caller Performance</a>
+</nav>
+<div class="sidebar-footer"><span class="live-dot"></span> Bot live (Self-hosted)<br>Watching 4 channels<br><span id="sidebar-count">0</span> leads tracked</div>
+</aside>
+<main class="main">
+<div class="main-header"><div><h1 id="view-title">Lead Monitor</h1></div><div class="meta" id="last-updated">loading...</div></div>
+<div id="view-dashboard" class="view active"><div id="app-dashboard"><div class="kpi-row"><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer"></div></div><div class="loading-shimmer" style="height:200px"></div></div></div>
+<div id="view-weekly" class="view"><div id="app-weekly"><div class="loading-shimmer" style="height:300px"></div></div></div>
+<div id="view-caller" class="view"><div id="app-caller"><div class="loading-shimmer" style="height:300px"></div></div></div>
+<div class="page-footer"><span>leadmonitordiscordbot.com</span><span id="footer-time"></span></div>
+</main>
+</div>
+<script>
+let currentView = 'dashboard';
+let callerList = [];
+let selectedCaller = null;
+
+function showView(v) {
+  document.querySelectorAll('.view').forEach(function(e) { e.classList.remove('active'); });
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.sidebar-nav a').forEach(function(e) { e.classList.remove('active'); });
+  document.getElementById('nav-' + v).classList.add('active');
+  currentView = v;
+  if (v === 'dashboard') { document.getElementById('view-title').textContent = 'Lead Monitor'; loadDashboard(); }
+  else if (v === 'weekly') { document.getElementById('view-title').textContent = 'Weekly Report'; loadWeekly(); }
+  else if (v === 'caller') { document.getElementById('view-title').textContent = 'Caller Performance'; loadCaller(); }
+}
+
+function scoreBadge(s) {
+  if (s >= 10) return '<span class="badge hot">' + s + '/12</span>';
+  if (s >= 9) return '<span class="badge high">' + s + '/12</span>';
+  if (s >= 7) return '<span class="badge mid">' + s + '/12</span>';
+  return '<span class="badge low">' + s + '/12</span>';
+}
+
+function barColor(i) { return ['cyan','purple','green','amber'][i % 4]; }
+
+// Dashboard
+async function loadDashboard() {
+  try {
+    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/leads');
+    if (!r.ok) throw new Error('API ' + r.status);
+    var leads = await r.json();
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    document.getElementById('sidebar-count').textContent = leads.length;
+    if (!leads.length) {
+      document.getElementById('app-dashboard').innerHTML = '<div class="empty-state"><p>No leads recorded yet. The bot is watching all 4 channels and will populate this dashboard as leads come in.</p></div>';
+      return;
+    }
+    var total = leads.length;
+    var highQ = leads.filter(function(l) { return l.score >= 9; }).length;
+    var avgScore = (leads.reduce(function(s,l) { return s + l.score; }, 0) / total).toFixed(1);
+    var missingAsk = leads.filter(function(l) { return l.missing_ask; }).length;
+    var byCaller = {};
+    leads.forEach(function(l) { byCaller[l.author] = (byCaller[l.author] || 0) + 1; });
+    var byChannel = {};
+    leads.forEach(function(l) { byChannel[l.channel] = (byChannel[l.channel] || 0) + 1; });
+    var scoreDist = {};
+    leads.forEach(function(l) { scoreDist[l.score] = (scoreDist[l.score] || 0) + 1; });
+
+    var h = '';
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi accent"><div class="label">Total Leads</div><div class="value accent">' + total + '</div><div class="sub">all channels</div></div>';
+    h += '<div class="kpi success"><div class="label">High Quality</div><div class="value success">' + highQ + '</div><div class="sub">' + Math.round(highQ/total*100) + '% of total</div></div>';
+    h += '<div class="kpi purple"><div class="label">Avg Score</div><div class="value purple">' + avgScore + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="kpi warning"><div class="label">Missing Ask</div><div class="value warning">' + missingAsk + '</div><div class="sub">' + Math.round(missingAsk/total*100) + '% gap</div></div></div>';
+
+    h += '<div class="grid-2">';
+    var cE = Object.entries(byCaller).sort(function(a,b) { return b[1] - a[1]; });
+    var mC = cE[0][1];
+    h += '<div class="section"><div class="section-head"><h2>Callers</h2><span class="count">' + cE.length + ' active</span></div><div class="bar-list">';
+    cE.forEach(function(item, i) {
+      var n = item[0], c = item[1];
+      var p = (c/mC*100).toFixed(0);
+      h += '<div class="bar-item"><div class="name">' + n + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + c + '</div></div>';
+    });
+    h += '</div></div>';
+
+    var chE = Object.entries(byChannel).sort(function(a,b) { return b[1] - a[1]; });
+    var mCh = chE[0][1];
+    h += '<div class="section"><div class="section-head"><h2>Channels</h2><span class="count">' + chE.length + ' active</span></div><div class="bar-list">';
+    chE.forEach(function(item, i) {
+      var n = item[0], c = item[1];
+      var p = (c/mCh*100).toFixed(0);
+      h += '<div class="bar-item"><div class="name">' + n + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + c + '</div></div>';
+    });
+    h += '</div></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Score Distribution</h2><span class="count">0-12 range</span></div><div class="score-grid">';
+    for (var s = 12; s >= 4; s--) {
+      var c = scoreDist[s] || 0;
+      if (!c) continue;
+      var cls = s >= 10 ? 'hot' : s >= 9 ? 'high' : s >= 7 ? 'mid' : 'low';
+      h += '<div class="score-cell ' + cls + '"><div class="num">' + s + '</div><div class="cnt">' + c + '</div></div>';
+    }
+    h += '</div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Recent Leads</h2><span class="count">' + Math.min(leads.length, 50) + ' shown</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+    leads.slice(0, 50).forEach(function(l, i) {
+      h += '<tr><td class="mono">' + (i+1) + '</td><td class="caller">' + l.author + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    document.getElementById('app-dashboard').innerHTML = h;
+  } catch(e) {
+    document.getElementById('app-dashboard').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+// Weekly Report
+async function loadWeekly() {
+  try {
+    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/weekly');
+    if (!r.ok) throw new Error('API ' + r.status);
+    var d = await r.json();
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    document.getElementById('sidebar-count').textContent = d.total;
+    if (!d.total) {
+      document.getElementById('app-weekly').innerHTML = '<div class="empty-state"><p>No leads this week yet.</p></div>';
+      return;
+    }
+    var h = '';
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi accent"><div class="label">Weekly Leads</div><div class="value accent">' + d.total + '</div><div class="sub">last 7 days</div></div>';
+    h += '<div class="kpi success"><div class="label">Avg Score</div><div class="value success">' + d.avg_score + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="kpi purple"><div class="label">HOT Leads</div><div class="value purple">' + d.quality.HOT + '</div><div class="sub">score 10+</div></div>';
+    h += '<div class="kpi warning"><div class="label">HIGH Leads</div><div class="value warning">' + d.quality.HIGH + '</div><div class="sub">score 9</div></div>';
+    h += '<div class="kpi" style="border-left:3px solid #4a9eff"><div class="label">COLD Leads</div><div class="value" style="color:#4a9eff">' + (d.quality.COLD||0) + '</div><div class="sub">cold channel</div></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Caller Leaderboard</h2><span class="count">' + d.callers.length + ' active</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Leads</th><th>Avg Score</th><th>HOT</th><th>HIGH</th><th>MED</th><th>LOW</th><th>COLD</th><th>Missing Ask</th><th>Quality</th></tr></thead><tbody>';
+    d.callers.forEach(function(c, i) {
+      var total = c.hot + c.high + c.medium + c.low + (c.cold||0) || 1;
+      h += '<tr><td class="mono">' + (i+1) + '</td><td class="caller">' + c.name + '</td><td class="mono">' + c.count + '</td><td class="mono">' + c.avg_score + '</td><td class="mono">' + c.hot + '</td><td class="mono">' + c.high + '</td><td class="mono">' + c.medium + '</td><td class="mono">' + c.low + '</td><td class="mono" style="color:#4a9eff">' + (c.cold||0) + '</td><td class="mono">' + c.missing_ask + '</td><td><div class="quality-bar"><div class="seg hot" style="width:' + (c.hot/total*100) + '%"></div><div class="seg high" style="width:' + (c.high/total*100) + '%"></div><div class="seg mid" style="width:' + (c.medium/total*100) + '%"></div><div class="seg low" style="width:' + (c.low/total*100) + '%"></div><div class="seg" style="width:' + ((c.cold||0)/total*100) + '%;background:#4a9eff"></div></div></td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Recent Leads This Week</h2><span class="count">' + Math.min(d.leads.length, 50) + ' shown</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+    d.leads.slice(0, 50).forEach(function(l, i) {
+      h += '<tr><td class="mono">' + (i+1) + '</td><td class="caller">' + l.author + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    document.getElementById('app-weekly').innerHTML = h;
+  } catch(e) {
+    document.getElementById('app-weekly').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+// Caller Performance
+async function loadCaller() {
+  try {
+    if (!callerList.length) {
+      var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/leads');
+      if (!r.ok) throw new Error('API ' + r.status);
+      var leads = await r.json();
+      var seen = {};
+      callerList = [];
+      leads.forEach(function(l) {
+        if (!seen[l.author]) { seen[l.author] = true; callerList.push(l.author); }
+      });
+    }
+    var h = '<div class="caller-select">';
+    callerList.forEach(function(n) {
+      h += '<button onclick="selectCaller(\'' + n + '\')" id="btn-' + n + '" class="' + (selectedCaller === n ? 'active' : '') + '">' + n + '</button>';
+    });
+    h += '</div><div id="caller-detail">';
+    if (!selectedCaller) {
+      h += '<div class="empty-state"><p>Select a caller above to view their individual performance.</p></div>';
+    } else {
+      h += '<div class="loading-shimmer" style="height:200px"></div>';
+    }
+    h += '</div>';
+    document.getElementById('app-caller').innerHTML = h;
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    if (selectedCaller) await loadCallerDetail(selectedCaller);
+  } catch(e) {
+    document.getElementById('app-caller').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+async function selectCaller(name) {
+  selectedCaller = name;
+  document.querySelectorAll('.caller-select button').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('btn-' + name);
+  if (btn) btn.classList.add('active');
+  await loadCallerDetail(name);
+}
+
+async function loadCallerDetail(name) {
+  try {
+    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/caller/' + encodeURIComponent(name));
+    if (!r.ok) throw new Error('API ' + r.status);
+    var d = await r.json();
+    if (!d.found) {
+      document.getElementById('caller-detail').innerHTML = '<div class="empty-state"><p>No data found for ' + name + '.</p></div>';
+      return;
+    }
+    var total = d.quality.HOT + d.quality.HIGH + d.quality.MEDIUM + d.quality.LOW + (d.quality.COLD||0) || 1;
+    var h = '';
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi accent"><div class="label">Total Leads</div><div class="value accent">' + d.total + '</div><div class="sub">all time</div></div>';
+    h += '<div class="kpi success"><div class="label">Avg Score</div><div class="value success">' + d.avg_score + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="kpi purple"><div class="label">HOT Leads</div><div class="value purple">' + d.quality.HOT + '</div><div class="sub">' + (d.quality.HOT/total*100).toFixed(0) + '%</div></div>';
+    h += '<div class="kpi warning"><div class="label">Missing Ask</div><div class="value warning">' + d.missing_ask + '</div><div class="sub">' + (d.missing_ask/d.total*100).toFixed(0) + '% gap</div></div></div>';
+
+    h += '<div class="grid-2">';
+    h += '<div class="section"><div class="section-head"><h2>Quality Breakdown</h2></div><div class="bar-list">';
+    var qualities = [{l:'HOT',c:d.quality.HOT,cls:'hot'},{l:'HIGH',c:d.quality.HIGH,cls:'high'},{l:'MEDIUM',c:d.quality.MEDIUM,cls:'mid'},{l:'LOW',c:d.quality.LOW,cls:'low'},{l:'COLD',c:d.quality.COLD||0,cls:'low'}];
+    qualities.forEach(function(q, i) {
+      var p = (q.c/total*100).toFixed(0);
+      h += '<div class="bar-item"><div class="name">' + q.l + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + q.c + '</div></div>';
+    });
+    h += '</div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Quality Distribution</h2></div>';
+    h += '<div class="quality-bar" style="height:24px;border-radius:6px">';
+    h += '<div class="seg hot" style="width:' + (d.quality.HOT/total*100) + '%"></div>';
+    h += '<div class="seg high" style="width:' + (d.quality.HIGH/total*100) + '%"></div>';
+    h += '<div class="seg mid" style="width:' + (d.quality.MEDIUM/total*100) + '%"></div>';
+    h += '<div class="seg low" style="width:' + (d.quality.LOW/total*100) + '%"></div>';
+    h += '<div class="seg" style="width:' + ((d.quality.COLD||0)/total*100) + '%;background:#4a9eff"></div>';
+    h += '</div>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--dim);margin-top:6px;font-family:var(--mono)"><span>HOT ' + d.quality.HOT + '</span><span>HIGH ' + d.quality.HIGH + '</span><span>MED ' + d.quality.MEDIUM + '</span><span>LOW ' + d.quality.LOW + '</span><span style="color:#4a9eff">COLD ' + (d.quality.COLD||0) + '</span></div></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Recent Leads</h2><span class="count">' + Math.min(d.leads.length, 50) + ' shown</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+    d.leads.slice(0, 50).forEach(function(l, i) {
+      h += '<tr><td class="mono">' + (i+1) + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    document.getElementById('caller-detail').innerHTML = h;
+  } catch(e) {
+    document.getElementById('caller-detail').innerHTML = '<div class="empty-state"><p>Could not load caller data.</p></div>';
+  }
+}
+
+// Init
+loadDashboard();
+setInterval(function() {
+  if (currentView === 'dashboard') loadDashboard();
+  else if (currentView === 'weekly') loadWeekly();
+  else if (currentView === 'caller') loadCaller();
+}, 30000);
+</script>
+</body>
+</html>
