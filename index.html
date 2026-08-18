@@ -137,7 +137,7 @@ function barColor(i) { return ['cyan','purple','green','amber'][i % 4]; }
 // Dashboard
 async function loadDashboard() {
   try {
-    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/leads');
+    var r = await fetch('https://basket-categories-typing-yrs.trycloudflare.com/api/leads');
     if (!r.ok) throw new Error('API ' + r.status);
     var leads = await r.json();
     document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
@@ -210,7 +210,7 @@ async function loadDashboard() {
 // Weekly Report
 async function loadWeekly() {
   try {
-    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/weekly');
+    var r = await fetch('https://basket-categories-typing-yrs.trycloudflare.com/api/weekly');
     if (!r.ok) throw new Error('API ' + r.status);
     var d = await r.json();
     document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
@@ -252,7 +252,7 @@ async function loadWeekly() {
 async function loadCaller() {
   try {
     if (!callerList.length) {
-      var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/leads');
+      var r = await fetch('https://basket-categories-typing-yrs.trycloudflare.com/api/leads');
       if (!r.ok) throw new Error('API ' + r.status);
       var leads = await r.json();
       var seen = {};
@@ -291,7 +291,7 @@ async function selectCaller(name) {
 
 async function loadCallerDetail(name) {
   try {
-    var r = await fetch('https://studio-utility-aqua-sit.trycloudflare.com/api/caller/' + encodeURIComponent(name));
+    var r = await fetch('https://basket-categories-typing-yrs.trycloudflare.com/api/caller/' + encodeURIComponent(name));
     if (!r.ok) throw new Error('API ' + r.status);
     var d = await r.json();
     if (!d.found) {
