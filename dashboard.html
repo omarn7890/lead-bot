@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c14;
+  --surface: #0f1520;
+  --raised: #161e2c;
+  --overlay: #1c2536;
+  --border: #1a2332;
+  --bordersub: #141d2a;
+  --text: #e8edf4;
+  --muted: #8896a8;
+  --dim: #556278;
+  --accent: #22d3ee;
+  --accentdim: rgba(34,211,238,.10);
+  --accentglow: rgba(34,211,238,.04);
+  --success: #34d399;
+  --successdim: rgba(52,211,153,.10);
+  --warning: #f59e0b;
+  --warningdim: rgba(245,158,11,.10);
+  --danger: #f87171;
+  --dangerdim: rgba(248,113,113,.10);
+  --purple: #a78bfa;
+  --purpledim: rgba(167,139,250,.10);
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --rad: 6px;
+  --radlg: 10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:13px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+@media(max-width:860px){.shell{grid-template-columns:1fr}.sidebar{display:none}}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:20px}
+.sidebar-brand{display:flex;align-items:center;gap:8px;padding:0 4px}
+.sidebar-brand .mark{width:28px;height:28px;background:var(--accentdim);border:1px solid rgba(34,211,238,.18);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)}
+.sidebar-brand .name{font-weight:700;font-size:.95rem;letter-spacing:-.02em}
+.sidebar-brand .name span{color:var(--accent)}
+.sidebar-nav{display:flex;flex-direction:column;gap:1px}
+.sidebar-nav a{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:5px;color:var(--muted);text-decoration:none;font-size:.82rem;font-weight:500;transition:all .12s;cursor:pointer}
+.sidebar-nav a:hover{background:var(--raised);color:var(--text)}
+.sidebar-nav a.active{background:var(--accentdim);color:var(--accent)}
+.sidebar-nav a .dot{width:5px;height:5px;border-radius:50%;background:var(--dim)}
+.sidebar-nav a.active .dot{background:var(--accent)}
+.sidebar-footer{margin-top:auto;padding:10px;background:var(--raised);border-radius:var(--rad);font-size:.72rem;color:var(--dim);line-height:1.5}
+.sidebar-footer .live{display:inline-block;width:5px;height:5px;background:var(--success);border-radius:50%;margin-right:4px}
+.main{padding:24px 28px;overflow-x:hidden}
+@media(max-width:600px){.main{padding:16px}}
+.main-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px}
+.main-header h1{font-size:1.35rem;font-weight:700;letter-spacing:-.03em}
+.main-header .meta{font-size:.72rem;color:var(--dim);font-family:var(--mono)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:16px 18px;cursor:pointer;transition:all .15s;position:relative}
+.kpi:hover{background:var(--raised);border-color:var(--accent);transform:translateY(-1px)}
+.kpi:active{transform:translateY(0)}
+.kpi .label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin-bottom:4px}
+.kpi .value{font-family:var(--mono);font-size:1.8rem;font-weight:700;line-height:1;letter-spacing:-.03em}
+.kpi .value.accent{color:var(--accent)}.kpi .value.success{color:var(--success)}.kpi .value.warning{color:var(--warning)}.kpi .value.purple{color:var(--purple)}
+.kpi .sub{font-size:.68rem;color:var(--dim);margin-top:3px;font-family:var(--mono)}
+.kpi .chevron{position:absolute;top:12px;right:14px;font-size:.6rem;color:var(--dim);opacity:0;transition:opacity .15s}
+.kpi:hover .chevron{opacity:1}
+.section{margin-bottom:22px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-head h2{font-size:.82rem;font-weight:600;color:var(--muted);letter-spacing:-.01em}
+.section-head .count{font-family:var(--mono);font-size:.68rem;color:var(--dim);background:var(--surface);padding:2px 7px;border-radius:4px;border:1px solid var(--border)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.grid-2{grid-template-columns:1fr}}
+.bar-list{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:14px}
+.bar-item{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:10px;padding:6px 0;cursor:pointer;transition:all .1s;border-radius:4px;margin:0 -6px;padding-left:6px;padding-right:6px}
+.bar-item:hover{background:var(--accentglow)}
+.bar-item+.bar-item{border-top:1px solid var(--bordersub)}
+.bar-item .name{font-size:.78rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{height:16px;background:var(--raised);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.22,1,.36,1);min-width:2px}
+.bar-fill.cyan{background:var(--accent);opacity:.35}
+.bar-fill.purple{background:var(--purple);opacity:.35}
+.bar-fill.green{background:var(--success);opacity:.35}
+.bar-fill.amber{background:var(--warning);opacity:.35}
+.bar-item .count{font-family:var(--mono);font-size:.72rem;font-weight:600;color:var(--muted);text-align:right}
+.sparkline{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:16px;position:relative}
+.sparkline canvas{width:100%;height:80px;display:block}
+.sparkline .label-row{display:flex;justify-content:space-between;margin-top:8px;font-family:var(--mono);font-size:.64rem;color:var(--dim)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead th{background:var(--raised);padding:8px 12px;text-align:left;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--bordersub);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .08s}
+tbody tr:hover{background:var(--accentglow)}
+tbody tr:last-child td{border-bottom:none}
+td.mono{font-family:var(--mono);font-size:.72rem}
+td.caller{font-weight:600;color:var(--purple)}
+td.channel{font-size:.68rem;color:var(--dim);font-family:var(--mono)}
+td.address{color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:3px;font-family:var(--mono);font-size:.68rem;font-weight:600}
+.badge.hot{background:var(--dangerdim);color:var(--danger)}.badge.high{background:var(--successdim);color:var(--success)}
+.badge.mid{background:var(--accentdim);color:var(--accent)}.badge.low{background:var(--warningdim);color:var(--warning)}
+.quality-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:6px}
+.quality-bar .seg{height:100%}
+.quality-bar .seg.hot{background:var(--danger)}.quality-bar .seg.high{background:var(--success)}
+.quality-bar .seg.mid{background:var(--accent)}.quality-bar .seg.low{background:var(--warning)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--dim)}
+.empty-state p{font-size:.85rem;max-width:340px;margin:0 auto;line-height:1.6}
+.loading-shimmer{background:linear-gradient(90deg,var(--surface) 25%,var(--raised) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--rad);height:40px;margin-bottom:10px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.loading-shimmer{animation:none}}
+.page-footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;color:var(--dim);font-family:var(--mono)}
+.view{display:none}.view.active{display:block}
+.caller-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.caller-select button{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:5px;font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .12s}
+.caller-select button:hover{background:var(--raised);color:var(--text)}
+.caller-select button.active{background:var(--accentdim);border-color:var(--accent);color:var(--accent)}
+.caller-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px}
+.caller-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radlg);padding:14px 16px}
+.caller-kpi .label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--dim);margin-bottom:3px}
+.caller-kpi .value{font-family:var(--mono);font-size:1.5rem;font-weight:700;line-height:1}
+.caller-kpi .value.accent{color:var(--accent)}.caller-kpi .value.success{color:var(--success)}.caller-kpi .value.warning{color:var(--warning)}.caller-kpi .value.purple{color:var(--purple)}
+.caller-kpi .sub{font-size:.66rem;color:var(--dim);margin-top:2px;font-family:var(--mono)}
+/* Filtered view */
+.filtered-view{display:none}
+.filtered-view.active{display:block}
+.filtered-view .back-bar{display:flex;align-items:center;gap:8px;margin-bottom:18px;padding:8px 0}
+.filtered-view .back-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:5px;font-family:var(--mono);font-size:.72rem;cursor:pointer;transition:all .12s}
+.filtered-view .back-btn:hover{background:var(--raised);color:var(--text)}
+.filtered-view .filter-label{font-size:.78rem;color:var(--muted);font-family:var(--mono)}
+.filtered-view .filter-label strong{color:var(--accent)}
+/* Score grid clickable */
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:6px}
+.score-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:10px 6px;text-align:center;cursor:pointer;transition:all .12s}
+.score-cell:hover{border-color:var(--accent);background:var(--raised)}
+.score-cell .num{font-family:var(--mono);font-size:1.1rem;font-weight:700;line-height:1}
+.score-cell .cnt{font-family:var(--mono);font-size:.68rem;color:var(--dim);margin-top:4px}
+.score-cell.hot .num{color:var(--danger)}.score-cell.high .num{color:var(--success)}.score-cell.mid .num{color:var(--accent)}.score-cell.low .num{color:var(--warning)}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+<div class="sidebar-brand"><div class="mark">LM</div><div class="name">Lead<span>Monitor</span></div></div>
+<nav class="sidebar-nav">
+<a onclick="showView('dashboard')" id="nav-dashboard" class="active"><span class="dot"></span> Dashboard</a>
+<a onclick="showView('weekly')" id="nav-weekly"><span class="dot"></span> Weekly Report</a>
+<a onclick="showView('caller')" id="nav-caller"><span class="dot"></span> Caller Performance</a>
+</nav>
+<div class="sidebar-footer"><span class="live"></span> Bot live on Railway<br>4 channels · <span id="sidebar-count">0</span> leads</div>
+</aside>
+<main class="main">
+<div class="main-header"><div><h1 id="view-title">Lead Monitor</h1></div><div class="meta" id="last-updated">loading...</div></div>
+<div id="view-dashboard" class="view active">
+  <div id="app-dashboard"><div class="kpi-row"><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer"></div><div class="loading-shimmer"></div></div><div class="loading-shimmer" style="height:160px"></div></div>
+  <div id="filtered-dashboard" class="filtered-view"></div>
+</div>
+<div id="view-weekly" class="view">
+  <div id="app-weekly"><div class="loading-shimmer" style="height:240px"></div></div>
+  <div id="filtered-weekly" class="filtered-view"></div>
+</div>
+<div id="view-caller" class="view">
+  <div id="app-caller"><div class="loading-shimmer" style="height:240px"></div></div>
+  <div id="filtered-caller" class="filtered-view"></div>
+</div>
+<div class="page-footer"><span>leadmonitordiscordbot.com</span><span id="footer-time"></span></div>
+</main>
+</div>
+<script>
+var currentView = 'dashboard';
+var callerList = [];
+var selectedCaller = null;
+var allLeads = [];
+var filteredLeads = null;
+var filterLabel = '';
+
+function showView(v) {
+  document.querySelectorAll('.view').forEach(function(e) { e.classList.remove('active'); });
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.sidebar-nav a').forEach(function(e) { e.classList.remove('active'); });
+  document.getElementById('nav-' + v).classList.add('active');
+  currentView = v;
+  filteredLeads = null;
+  if (v === 'dashboard') { document.getElementById('view-title').textContent = 'Lead Monitor'; loadDashboard(); }
+  else if (v === 'weekly') { document.getElementById('view-title').textContent = 'Weekly Report'; loadWeekly(); }
+  else if (v === 'caller') { document.getElementById('view-title').textContent = 'Caller Performance'; loadCaller(); }
+}
+
+function scoreBadge(s) {
+  if (s >= 10) return '<span class="badge hot">' + s + '/12</span>';
+  if (s >= 9) return '<span class="badge high">' + s + '/12</span>';
+  if (s >= 7) return '<span class="badge mid">' + s + '/12</span>';
+  return '<span class="badge low">' + s + '/12</span>';
+}
+
+function barColor(i) { return ['cyan','purple','green','amber'][i % 4]; }
+function fmt(n) { return n != null ? n.toLocaleString() : '-'; }
+
+// ── Filtered view ──
+function showFiltered(leads, label, containerId, mainId) {
+  filteredLeads = leads;
+  filterLabel = label;
+  document.getElementById(mainId).style.display = 'none';
+  var fv = document.getElementById(containerId);
+  fv.classList.add('active');
+  var h = '<div class="back-bar"><button class="back-btn" onclick="clearFilter(\'' + containerId + '\',\'' + mainId + '\')">← Back</button><span class="filter-label">Filtered: <strong>' + label + '</strong> — ' + leads.length + ' leads</span></div>';
+  h += renderLeadTable(leads);
+  fv.innerHTML = h;
+}
+
+function clearFilter(containerId, mainId) {
+  filteredLeads = null;
+  filterLabel = '';
+  document.getElementById(containerId).classList.remove('active');
+  document.getElementById(mainId).style.display = '';
+  if (currentView === 'dashboard') loadDashboard();
+  else if (currentView === 'weekly') loadWeekly();
+}
+
+function renderLeadTable(leads) {
+  var h = '<div class="section"><div class="section-head"><h2>Leads</h2><span class="count">' + Math.min(leads.length, 100) + ' shown</span></div>';
+  h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+  leads.slice(0, 100).forEach(function(l, i) {
+    h += '<tr onclick="viewLeadDetail(\'' + l.name.replace(/'/g, "\\'") + '\')"><td class="mono">' + (i+1) + '</td><td class="caller">' + l.author + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+  });
+  h += '</tbody></table></div></div>';
+  return h;
+}
+
+function viewLeadDetail(name) {
+  var lead = allLeads.find(function(l) { return l.name === name; });
+  if (!lead) return;
+  alert('Lead: ' + lead.name + '\nAddress: ' + (lead.address || 'N/A') + '\nScore: ' + lead.score + '/12\nQuality: ' + lead.quality + '\nChannel: ' + lead.channel + '\nTime: ' + lead.time + '\nMarket: ' + (lead.market ? '$'+fmt(lead.market) : 'N/A') + '\nAsk: ' + (lead.ask ? '$'+fmt(lead.ask) : 'N/A'));
+}
+
+// ── Sparkline ──
+function drawSparkline(canvasId, data) {
+  var canvas = document.getElementById(canvasId);
+  if (!canvas || !data.length) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.parentElement.clientWidth - 32;
+  var H = 80;
+  canvas.width = W * 2;
+  canvas.height = H * 2;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(2, 2);
+  var max = Math.max.apply(null, data.map(function(d) { return d.count; })) || 1;
+  var pad = 4;
+  var w = (W - pad * 2) / (data.length - 1 || 1);
+  ctx.beginPath();
+  ctx.moveTo(pad, H - pad);
+  data.forEach(function(d, i) {
+    var x = pad + i * w;
+    var y = H - pad - (d.count / max * (H - pad * 2));
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad + (data.length - 1) * w, H - pad);
+  ctx.closePath();
+  var grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(34,211,238,.12)');
+  grad.addColorStop(1, 'rgba(34,211,238,.01)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(34,211,238,.5)';
+  ctx.lineWidth = 1.5;
+  data.forEach(function(d, i) {
+    var x = pad + i * w;
+    var y = H - pad - (d.count / max * (H - pad * 2));
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  data.forEach(function(d, i) {
+    var x = pad + i * w;
+    var y = H - pad - (d.count / max * (H - pad * 2));
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#22d3ee';
+    ctx.fill();
+  });
+}
+
+// ── Dashboard ──
+async function loadDashboard() {
+  try {
+    var r = await fetch('/api/stats');
+    if (!r.ok) throw new Error('API ' + r.status);
+    var d = await r.json();
+    // Also load all leads for filtering
+    var r2 = await fetch('/api/leads');
+    if (r2.ok) allLeads = await r2.json();
+
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    document.getElementById('sidebar-count').textContent = d.total;
+    if (!d.total) {
+      document.getElementById('app-dashboard').innerHTML = '<div class="empty-state"><p>No leads recorded yet.</p></div>';
+      return;
+    }
+    var h = '';
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi" onclick="showFiltered(allLeads,\'All Leads\',\'filtered-dashboard\',\'app-dashboard\')"><div class="label">Total Leads</div><div class="value accent">' + fmt(d.total) + '</div><div class="sub">all time</div><span class="chevron">→</span></div>';
+    h += '<div class="kpi"><div class="label">Avg / Day</div><div class="value success">' + d.avg_per_day + '</div><div class="sub">14-day avg</div></div>';
+    h += '<div class="kpi"><div class="label">Avg Score</div><div class="value purple">' + d.avg_score + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="kpi" onclick="showFiltered(allLeads.filter(function(l){return l.score>=9}),\'High Quality (9+)\',\'filtered-dashboard\',\'app-dashboard\')"><div class="label">High Quality</div><div class="value success">' + d.high_quality + '</div><div class="sub">' + Math.round(d.high_quality/d.total*100) + '% of total</div><span class="chevron">→</span></div>';
+    h += '<div class="kpi" onclick="showFiltered(allLeads.filter(function(l){return l.missing_ask}),\'Missing Ask\',\'filtered-dashboard\',\'app-dashboard\')"><div class="label">Missing Ask</div><div class="value warning">' + d.missing_ask + '</div><div class="sub">' + Math.round(d.missing_ask/d.total*100) + '% gap</div><span class="chevron">→</span></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Leads Per Day</h2><span class="count">last 14 days</span></div>';
+    h += '<div class="sparkline"><canvas id="sparkline-canvas"></canvas>';
+    h += '<div class="label-row">';
+    d.leads_per_day.forEach(function(day) { h += '<span>' + day.date.slice(5) + '</span>'; });
+    h += '</div></div></div>';
+
+    h += '<div class="grid-2">';
+    var cE = d.callers;
+    var mC = cE.length ? cE[0].count : 1;
+    h += '<div class="section"><div class="section-head"><h2>Callers</h2><span class="count">' + cE.length + ' active</span></div><div class="bar-list">';
+    cE.forEach(function(c, i) {
+      var p = (c.count/mC*100).toFixed(0);
+      h += '<div class="bar-item" onclick="showFiltered(allLeads.filter(function(l){return l.author===\'' + c.name + '\'}),\'Caller: ' + c.name + '\',\'filtered-dashboard\',\'app-dashboard\')"><div class="name">' + c.name + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + c.count + '</div></div>';
+    });
+    h += '</div></div>';
+
+    var chE = d.channels;
+    var mCh = chE.length ? chE[0].count : 1;
+    h += '<div class="section"><div class="section-head"><h2>Channels</h2><span class="count">' + chE.length + ' active</span></div><div class="bar-list">';
+    chE.forEach(function(c, i) {
+      var p = (c.count/mCh*100).toFixed(0);
+      h += '<div class="bar-item" onclick="showFiltered(allLeads.filter(function(l){return l.channel===\'' + c.name + '\'}),\'Channel: ' + c.name + '\',\'filtered-dashboard\',\'app-dashboard\')"><div class="name">' + c.name + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + c.count + '</div></div>';
+    });
+    h += '</div></div></div>';
+
+    // Score distribution
+    var scoreDist = {};
+    allLeads.forEach(function(l) { scoreDist[l.score] = (scoreDist[l.score] || 0) + 1; });
+    h += '<div class="section"><div class="section-head"><h2>Score Distribution</h2><span class="count">click to filter</span></div><div class="score-grid">';
+    for (var s = 12; s >= 4; s--) {
+      var c = scoreDist[s] || 0;
+      if (!c) continue;
+      var cls = s >= 10 ? 'hot' : s >= 9 ? 'high' : s >= 7 ? 'mid' : 'low';
+      h += '<div class="score-cell ' + cls + '" onclick="showFiltered(allLeads.filter(function(l){return l.score===' + s + '}),\'Score: ' + s + '/12\',\'filtered-dashboard\',\'app-dashboard\')"><div class="num">' + s + '</div><div class="cnt">' + c + '</div></div>';
+    }
+    h += '</div></div>';
+
+    document.getElementById('app-dashboard').innerHTML = h;
+    document.getElementById('app-dashboard').style.display = '';
+    document.getElementById('filtered-dashboard').classList.remove('active');
+    setTimeout(function() { drawSparkline('sparkline-canvas', d.leads_per_day); }, 50);
+  } catch(e) {
+    document.getElementById('app-dashboard').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+// ── Weekly Report ──
+async function loadWeekly() {
+  try {
+    var r = await fetch('/api/weekly');
+    if (!r.ok) throw new Error('API ' + r.status);
+    var d = await r.json();
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    document.getElementById('sidebar-count').textContent = d.total;
+    if (!d.total) {
+      document.getElementById('app-weekly').innerHTML = '<div class="empty-state"><p>No leads in the last 7 days.</p></div>';
+      return;
+    }
+    var h = '';
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi" onclick="showFiltered(d.leads,\'Weekly Leads\',\'filtered-weekly\',\'app-weekly\')"><div class="label">Weekly Leads</div><div class="value accent">' + d.total + '</div><div class="sub">last 7 days</div><span class="chevron">→</span></div>';
+    h += '<div class="kpi"><div class="label">Avg Score</div><div class="value success">' + d.avg_score + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="kpi" onclick="showFiltered(d.leads.filter(function(l){return l.quality===\'HOT\'}),\'HOT Leads\',\'filtered-weekly\',\'app-weekly\')"><div class="label">HOT Leads</div><div class="value purple">' + d.quality.HOT + '</div><div class="sub">score 10+</div><span class="chevron">→</span></div>';
+    h += '<div class="kpi" onclick="showFiltered(d.leads.filter(function(l){return l.quality===\'HIGH\'}),\'HIGH Leads\',\'filtered-weekly\',\'app-weekly\')"><div class="label">HIGH Leads</div><div class="value warning">' + d.quality.HIGH + '</div><div class="sub">score 9</div><span class="chevron">→</span></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Caller Leaderboard</h2><span class="count">' + d.callers.length + ' active</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Leads</th><th>Avg</th><th>HOT</th><th>HIGH</th><th>MED</th><th>LOW</th><th>Miss Ask</th><th>Quality</th></tr></thead><tbody>';
+    d.callers.forEach(function(c, i) {
+      var total = c.hot + c.high + c.medium + c.low || 1;
+      h += '<tr onclick="showFiltered(d.leads.filter(function(l){return l.author===\'' + c.name + '\'}),\'Caller: ' + c.name + '\',\'filtered-weekly\',\'app-weekly\')"><td class="mono">' + (i+1) + '</td><td class="caller">' + c.name + '</td><td class="mono">' + c.count + '</td><td class="mono">' + c.avg_score + '</td><td class="mono">' + c.hot + '</td><td class="mono">' + c.high + '</td><td class="mono">' + c.medium + '</td><td class="mono">' + c.low + '</td><td class="mono">' + c.missing_ask + '</td><td><div class="quality-bar"><div class="seg hot" style="width:' + (c.hot/total*100) + '%"></div><div class="seg high" style="width:' + (c.high/total*100) + '%"></div><div class="seg mid" style="width:' + (c.medium/total*100) + '%"></div><div class="seg low" style="width:' + (c.low/total*100) + '%"></div></div></td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Recent Leads</h2><span class="count">' + Math.min(d.leads.length, 50) + ' shown</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Caller</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+    d.leads.slice(0, 50).forEach(function(l, i) {
+      h += '<tr onclick="viewLeadDetail(\'' + l.name.replace(/'/g, "\\'") + '\')"><td class="mono">' + (i+1) + '</td><td class="caller">' + l.author + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    document.getElementById('app-weekly').innerHTML = h;
+    document.getElementById('app-weekly').style.display = '';
+    document.getElementById('filtered-weekly').classList.remove('active');
+  } catch(e) {
+    document.getElementById('app-weekly').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+// ── Caller Performance ──
+async function loadCaller() {
+  try {
+    if (!callerList.length) {
+      var r = await fetch('/api/stats');
+      if (!r.ok) throw new Error('API ' + r.status);
+      var d = await r.json();
+      callerList = d.callers.map(function(c) { return c.name; });
+    }
+    var h = '<div class="caller-select">';
+    callerList.forEach(function(n) {
+      h += '<button onclick="selectCaller(\'' + n + '\')" id="btn-' + n + '" class="' + (selectedCaller === n ? 'active' : '') + '">' + n + '</button>';
+    });
+    h += '</div><div id="caller-detail">';
+    if (!selectedCaller) {
+      h += '<div class="empty-state"><p>Select a caller above to view their individual performance report.</p></div>';
+    } else {
+      h += '<div class="loading-shimmer" style="height:160px"></div>';
+    }
+    h += '</div>';
+    document.getElementById('app-caller').innerHTML = h;
+    document.getElementById('app-caller').style.display = '';
+    document.getElementById('filtered-caller').classList.remove('active');
+    document.getElementById('last-updated').textContent = 'updated ' + new Date().toLocaleTimeString();
+    document.getElementById('footer-time').textContent = 'auto-refresh 30s';
+    if (selectedCaller) await loadCallerDetail(selectedCaller);
+  } catch(e) {
+    document.getElementById('app-caller').innerHTML = '<div class="empty-state"><p>Could not reach API. Retrying in 30s.</p></div>';
+  }
+}
+
+async function selectCaller(name) {
+  selectedCaller = name;
+  document.querySelectorAll('.caller-select button').forEach(function(b) { b.classList.remove('active'); });
+  var btn = document.getElementById('btn-' + name);
+  if (btn) btn.classList.add('active');
+  await loadCallerDetail(name);
+}
+
+async function loadCallerDetail(name) {
+  try {
+    var r = await fetch('/api/caller/' + encodeURIComponent(name));
+    if (!r.ok) throw new Error('API ' + r.status);
+    var d = await r.json();
+    if (!d.found) {
+      document.getElementById('caller-detail').innerHTML = '<div class="empty-state"><p>No data found for ' + name + '.</p></div>';
+      return;
+    }
+    var totalQ = d.quality.HOT + d.quality.HIGH + d.quality.MEDIUM + d.quality.LOW || 1;
+    var h = '';
+    h += '<div class="caller-kpi-row">';
+    h += '<div class="caller-kpi" onclick="showFiltered(d.leads,\'Caller: ' + name + '\',\'filtered-caller\',\'app-caller\')"><div class="label">Total Leads</div><div class="value accent">' + d.total + '</div><div class="sub">all time</div><span class="chevron" style="position:absolute;top:10px;right:12px;font-size:.55rem;color:var(--dim)">→</span></div>';
+    h += '<div class="caller-kpi"><div class="label">Avg Score</div><div class="value success">' + d.avg_score + '</div><div class="sub">out of 12</div></div>';
+    h += '<div class="caller-kpi" onclick="showFiltered(d.leads.filter(function(l){return l.quality===\'HOT\'}),\'Caller: ' + name + ' — HOT\',\'filtered-caller\',\'app-caller\')"><div class="label">HOT Leads</div><div class="value purple">' + d.quality.HOT + '</div><div class="sub">' + (d.quality.HOT/totalQ*100).toFixed(0) + '%</div></div>';
+    h += '<div class="caller-kpi" onclick="showFiltered(d.leads.filter(function(l){return l.missing_ask}),\'Caller: ' + name + ' — Missing Ask\',\'filtered-caller\',\'app-caller\')"><div class="label">Missing Ask</div><div class="value warning">' + d.missing_ask + '</div><div class="sub">' + (d.missing_ask/d.total*100).toFixed(0) + '% gap</div></div></div>';
+
+    h += '<div class="grid-2">';
+    h += '<div class="section"><div class="section-head"><h2>Quality Breakdown</h2></div><div class="bar-list">';
+    [{l:'HOT',c:d.quality.HOT},{l:'HIGH',c:d.quality.HIGH},{l:'MEDIUM',c:d.quality.MEDIUM},{l:'LOW',c:d.quality.LOW}].forEach(function(q, i) {
+      var p = (q.c/totalQ*100).toFixed(0);
+      h += '<div class="bar-item" onclick="showFiltered(d.leads.filter(function(l){return l.quality===\'' + q.l + '\'}),\'Caller: ' + name + ' — ' + q.l + '\',\'filtered-caller\',\'app-caller\')"><div class="name">' + q.l + '</div><div class="bar-track"><div class="bar-fill ' + barColor(i) + '" style="width:' + p + '%"></div></div><div class="count">' + q.c + '</div></div>';
+    });
+    h += '</div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Quality Distribution</h2></div>';
+    h += '<div class="quality-bar" style="height:20px;border-radius:4px">';
+    h += '<div class="seg hot" style="width:' + (d.quality.HOT/totalQ*100) + '%"></div>';
+    h += '<div class="seg high" style="width:' + (d.quality.HIGH/totalQ*100) + '%"></div>';
+    h += '<div class="seg mid" style="width:' + (d.quality.MEDIUM/totalQ*100) + '%"></div>';
+    h += '<div class="seg low" style="width:' + (d.quality.LOW/totalQ*100) + '%"></div>';
+    h += '</div>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:.64rem;color:var(--dim);margin-top:5px;font-family:var(--mono)"><span>HOT ' + d.quality.HOT + '</span><span>HIGH ' + d.quality.HIGH + '</span><span>MED ' + d.quality.MEDIUM + '</span><span>LOW ' + d.quality.LOW + '</span></div></div></div>';
+
+    h += '<div class="section"><div class="section-head"><h2>Recent Leads</h2><span class="count">' + Math.min(d.leads.length, 50) + ' shown</span></div>';
+    h += '<div class="table-wrap"><table><thead><tr><th>#</th><th>Seller</th><th>Address</th><th>Score</th><th>Channel</th><th>Time</th></tr></thead><tbody>';
+    d.leads.slice(0, 50).forEach(function(l, i) {
+      h += '<tr onclick="viewLeadDetail(\'' + l.name.replace(/'/g, "\\'") + '\')"><td class="mono">' + (i+1) + '</td><td>' + l.name + '</td><td class="address">' + (l.address || '-') + '</td><td>' + scoreBadge(l.score) + '</td><td class="channel">' + l.channel + '</td><td class="mono">' + l.time + '</td></tr>';
+    });
+    h += '</tbody></table></div></div>';
+    document.getElementById('caller-detail').innerHTML = h;
+  } catch(e) {
+    document.getElementById('caller-detail').innerHTML = '<div class="empty-state"><p>Could not load caller data.</p></div>';
+  }
+}
+
+// Init
+loadDashboard();
+setInterval(function() {
+  if (currentView === 'dashboard') loadDashboard();
+  else if (currentView === 'weekly') loadWeekly();
+  else if (currentView === 'caller') loadCaller();
+}, 30000);
+</script>
+</body>
+</html>
